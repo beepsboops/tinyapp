@@ -54,3 +54,16 @@ app.post("/urls", (req, res) => {
   urlDatabase[randomKey] = newLongURL
   res.redirect(`/urls/${randomKey}`)
 });
+
+app.post("/urls:shortURL/delete", (req, res) => {
+  // Prepare data
+  const key = req.params.shortURL
+  // removeURL(urlDatabase, key)
+  // Prepare my template variables
+  // const templateVars = {}
+  // const removeTodo = (todos, key) => {
+  delete urlDatabase.key
+  // }
+  // Respond
+  res.redirect("/urls")
+});
