@@ -2,7 +2,10 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser');
+
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
@@ -46,6 +49,18 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+// Not told to add this in assignment? But need it?
+// app.get("/urls_show", (req, res) => {
+//   const templateVars = { urls:  };
+//   res.render("urls_show", templateVars);
+// });
+
+// Not sure if this is needed? Correct?
+app.get("/urls/:longURL", (req, res) => {
+  const templateVars = { urls: urlDatabase };
+  res.render("urls_show/:longURL", templateVars);
+});
+
 app.post("/urls", (req, res) => {
   let randomKey = randomString();
   console.log(randomKey);
@@ -55,15 +70,33 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${randomKey}`)
 });
 
-app.post("/urls:shortURL/delete", (req, res) => {
+app.post("/urls/:shortURL/delete", (req, res) => {
   // Prepare data
+  console.log("test")
   const key = req.params.shortURL
   // removeURL(urlDatabase, key)
   // Prepare my template variables
   // const templateVars = {}
   // const removeTodo = (todos, key) => {
-  delete urlDatabase.key
+  delete urlDatabase[key]
   // }
   // Respond
   res.redirect("/urls")
+});
+
+app.post("/urls/:shortURL", (req, res) => {
+  const longURL = req.body.longURL
+  urlDatabase[req.params.shortURL] = longURL
+  res.redirect("/urls");
+});
+
+//Route for login, using cookies
+app.post("/login", (req, res) => {
+  // console.log(req.cookies);
+  // const templateVars = { username: req.cookies.username }
+  const username = req.body.username
+  console.log(username)
+  res.cookie('username', username)
+  console.log(username)
+  res.redirect("/urls");
 });
