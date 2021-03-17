@@ -36,16 +36,17 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index1", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
+  const templateVars = { username: req.cookies["username"] };
   res.render("urls_new");
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"] };
   res.render("urls_show", templateVars);
 });
 
@@ -57,7 +58,7 @@ app.get("/urls/:shortURL", (req, res) => {
 
 // Not sure if this is needed? Correct?
 app.get("/urls/:longURL", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_show/:longURL", templateVars);
 });
 
@@ -95,8 +96,15 @@ app.post("/login", (req, res) => {
   // console.log(req.cookies);
   // const templateVars = { username: req.cookies.username }
   const username = req.body.username
-  console.log(username)
   res.cookie('username', username)
-  console.log(username)
+  res.redirect("/urls");
+});
+
+// Route for logout, clearing cookie
+app.post("/logout", (req, res) => {
+  // console.log(req.cookies);
+  // const templateVars = { username: req.cookies.username }
+  const username = req.body.username
+  res.clearCookie('username')
   res.redirect("/urls");
 });
