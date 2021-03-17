@@ -11,6 +11,10 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const randomString = function() {
+  let r = Math.random().toString(36).substring(7);
+  return r;
+}
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -43,6 +47,10 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
+  let randomKey = randomString();
+  console.log(randomKey);
   console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  let newLongURL = req.body.longURL
+  urlDatabase[randomKey] = newLongURL
+  res.redirect(`/urls/${randomKey}`)
 });
