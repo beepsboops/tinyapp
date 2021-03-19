@@ -29,12 +29,6 @@ const users = {
   }
 }
 
-// console.log(users)
-
-
-
-
-
 const randomString = function() {
   let r = Math.random().toString(36).substring(7);
   return r;
@@ -83,16 +77,41 @@ app.get("/urls/:longURL", (req, res) => {
   res.render("urls_show/:longURL", templateVars);
 });
 
-// Route for register
+// Route for registration form
 app.get("/register", (req, res) => {
   const templateVars = { user:users[req.cookies.userID] };
   res.render("register", templateVars);
 });
 
-// Route new login page
-app.get("/login2", (req, res) => {
+// Route for login form
+app.get("/login", (req, res) => {
   const templateVars = { user:users[req.cookies.userID] };
-  res.render("login2", templateVars);
+  res.render("login", templateVars);
+});
+
+// Route new login page submission POST
+app.post("/login", (req, res) => {
+  const email = req.body.email
+  const password = req.body.password
+  
+  // If the e-mail or password are empty strings, send response with 400 status code
+  if ((!email) || (!password)) {
+    res.status(400).send("Email and password cannot be blank");
+    return;
+  }
+  
+  const currentUser = (isExistingUser(email, users))
+  console.log("current user", currentUser)
+  if (currentUser) {
+    const templateVars = { user:currentUser };
+    // Set a user_id cookie containing the user's newly generated ID
+    res.cookie('userID', currentUser.id)
+  
+    // Redirect the user to the /urls page
+    res.redirect("/urls");
+  } else {
+    res.status(404).send("User does not exist");
+  }
 });
 
 app.post("/urls", (req, res) => {
@@ -115,6 +134,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[key]
   // }
   // Respond
+  // res.render("login", templateVars);
   res.redirect("/urls")
 });
 
@@ -124,19 +144,15 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect("/urls");
 });
 
-//Route for login, using cookies
-app.post("/login", (req, res) => {
-  // console.log(req.cookies);
-  // const templateVars = { username: req.cookies.username }
-  const username = req.body.username
-  res.cookie('username', username)
-  res.redirect("/urls");
-});
+//Route for login in navbar, using cookies (DEPRECATED, repalced by login form (GET & POST))
+// app.post("/login", (req, res) => {
+//   const username = req.body.username
+//   res.cookie('username', username)
+//   res.redirect("/urls");
+// });
 
 // Route for logout, clearing cookie
 app.post("/logout", (req, res) => {
-  // console.log(req.cookies);
-  // const templateVars = { username: req.cookies.username }
   res.clearCookie('userID')
   res.redirect("/urls");
 });
@@ -165,11 +181,11 @@ app.post("/register", (req, res) => {
   let randomUserID = randomString();
   console.log("randomUserID", randomUserID)
   
-  // Create new user object SOMETHING IS WRONG HERE
+  // Create new user object
   let newUser = { id: randomUserID, email: email, password: password }
   console.log("newUser", newUser)
 
-  // Add new user to global users object?
+  // Add new user to global users object
   users[randomUserID] = newUser
 
   // Set a user_id cookie containing the user's newly generated ID
@@ -184,3 +200,12 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 
 });
+
+/* COMPLETED TESTS
+[x] A user can register
+[x] A user cannot register with an email address that has already been used
+[x] A user can log in with a correct email/password
+[x] A user sees the correct information in the header
+[x] A user cannot log in with an incorrect email/password
+[x] A user can log out
+*/
