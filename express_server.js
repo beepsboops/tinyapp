@@ -3,27 +3,39 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
-const { isExistingUser } = require(`./helperFunctions`)
+const { isExistingUser, urlsForUser, deleteURL, editURL, urlOwnershipValidation } = require(`./helperFunctions`)
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
+// URL DATABASTE 1.0
+// const urlDatabase = {
+//   "b2xVn2": "http://www.lighthouselabs.ca",
+//   "9sm5xK": "http://www.google.com"
+// };
+
+// URL DATABASTE 2.0
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
-// users Object
+// Anyone can visit short urls
+// But only valid logged in users can do certain stuff
+// Check if user is logged and use function to return URLS where userID = logged in user
+
+
+// users OBJECT
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
     email: "user@example.com", 
     password: "purple-monkey-dinosaur"
   },
- "user2RandomID": {
-    id: "user2RandomID", 
+ "aJ48lW": {
+    id: "aJ48lW", 
     email: "user2@example.com", 
     password: "dishwasher-funk"
   }
@@ -39,7 +51,7 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  // console.log(`Example app listening on port ${PORT}!`);
 });
 
 app.get("/urls.json", (req, res) => {
@@ -50,46 +62,92 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+
+
+
+// [GET] HOMEPAGE 1.0
+// app.get("/urls", (req, res) => {
+//   const templateVars = { urls: urlDatabase, user: users[req.cookies.userID] };
+//   res.render("urls_index1", templateVars);
+// });
+
+// [GET] HOMEPAGE 2.0
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, user:users[req.cookies.userID] };
-  res.render("urls_index1", templateVars);
+  let userID = req.cookies.userID
+  const user = users[userID]
+  const templateVars = {user: user, urls: urlsForUser(urlDatabase, userID)}
+  res.render("urls_index1", templateVars );
+  // if (!user) {
+    
+  //   // Additionally, add conditional logic to urls_index1?
+  //       // if !userID display links to login and registration pages
+  //       // else dispaly URLS
+  // } else {
+  //   templateVars = {user: user, urls: urlsResult(urlsDatabase, userID) }
+  //   // Render page normally
+  //   // Create logic to get URLs for given userID
+  //   // let urlsResult = urlsForUser(urlDatabase, user)
+  //   res.render("urls_index1", templateVars );
+  // }
 });
 
-app.get("/urls/new", (req, res) => {
-  const templateVars = { user:users[req.cookies.userID] };
-  res.render("urls_new", templateVars );
+// if user is logged in
+  // find user in database and find their URLs  
+  // display that user's URLs
+
+// dlse if user is not logged in
+  // don't display URLs
+  // prompt to log in or register
+
+
+
+
+
+
+// [GET] /U/ REDIRECT TO LONG URL PAGE
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL]
+  res.redirect(longURL);
 });
+
+// [GET] URLS NEW PAGE
+app.get("/urls/new", (req, res) => {
+  const user = users[req.cookies.userID]
+  const templateVars = { user: user };
+  if (user) {
+    res.render("urls_new", templateVars );
+  } else {
+    res.redirect('/login')
+  }
+});
+
+// [GET] SHORT URLS PAGE
 
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user:users[req.cookies.userID] };
+  const currentLongURL = urlDatabase[req.params.shortURL].longURL
+  const templateVars = { shortURL: req.params.shortURL, currentLongURL, user:users[req.cookies.userID] };
   res.render("urls_show", templateVars);
 });
 
-// Not told to add this in assignment? But need it?
-// app.get("/urls_show", (req, res) => {
-//   const templateVars = { urls:  };
-//   res.render("urls_show", templateVars);
-// });
-
-// Not sure if this is needed? Correct?
+// [GET] LONG URLS PAGE // Not sure if this is needed? Correct?
 app.get("/urls/:longURL", (req, res) => {
   const templateVars = { urls: urlDatabase, user:users[req.cookies.userID] };
   res.render("urls_show/:longURL", templateVars);
 });
 
-// Route for registration form
+// [GET] REGISTRATION FORM
 app.get("/register", (req, res) => {
   const templateVars = { user:users[req.cookies.userID] };
   res.render("register", templateVars);
 });
 
-// Route for login form
+// [GET] LOGIN FORM
 app.get("/login", (req, res) => {
   const templateVars = { user:users[req.cookies.userID] };
   res.render("login", templateVars);
 });
 
-// Route new login page submission POST
+// [POST] NEW LOGIN
 app.post("/login", (req, res) => {
   const email = req.body.email
   const password = req.body.password
@@ -105,63 +163,104 @@ app.post("/login", (req, res) => {
   if (currentUser) {
     const templateVars = { user:currentUser };
     // Set a user_id cookie containing the user's newly generated ID
-    res.cookie('userID', currentUser.id)
+    res.cookie('userID', currentUser.id).redirect("/urls")
   
     // Redirect the user to the /urls page
-    res.redirect("/urls");
+    // res.redirect("/urls");
   } else {
     res.status(404).send("User does not exist");
   }
 });
 
+// [GET] EDIT 
+app.get("/urls/:shortURL/edit", (req, res) => {
+  const userID = req.cookies.userID
+  const user = users[userID]
+  const currentLongURL = urlDatabase[req.params.shortURL].longURL
+  const templateVars = { user: user, currentLongURL: currentLongURL, shortURL: req.params.shortURL}
+  res.render("edit", templateVars)
+});
+
+// [POST] URLS MAIN PAGE
 app.post("/urls", (req, res) => {
   let randomKey = randomString();
-  console.log(randomKey);
-  console.log(req.body);  // Log the POST request body to the console
+  // console.log(randomKey);
+  // console.log(req.body);  // Log the POST request body to the console
   let newLongURL = req.body.longURL
   urlDatabase[randomKey] = newLongURL
   res.redirect(`/urls/${randomKey}`)
 });
 
+// [POST] DELETE 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  // Prepare data
-  console.log("test")
-  const key = req.params.shortURL
-  // removeURL(urlDatabase, key)
-  // Prepare my template variables
-  // const templateVars = {}
-  // const removeTodo = (todos, key) => {
-  delete urlDatabase[key]
-  // }
-  // Respond
-  // res.render("login", templateVars);
+  // console.log("DELETE POST ROTUE")
+
+  // PSUEDO LOGIC
+
+  // Prepare necessary info
+  // We need to know who's logged in (userID) and what their URLs are (urls)
+  // const templateVars = {user: user, urls: urlsForUser(urlDatabase, userID)}
+
+  const userID = req.cookies.userID
+  const user = users[userID]
+  const shortURL = req.params.shortURL
+    
+  // const templateVars = {user: user, urls: urlsForUser(urlDatabase, userID)}
+
+  // Check to make sure that user is logged in
+  // if !user then redirect?
+  // else if user === true
+    // delete URL requested for deletion
+    // call deleteURL function, pass in appropriate object & key
+  
+  // user = logged in user
+  // urls = long URLs for logged in user
+  if (urlOwnershipValidation(urlDatabase, userID, shortURL)) {
+    deleteURL(urlDatabase, shortURL)
+    res.redirect("/urls")
+  } else {
+      res.redirect("/urls")
+  }
+});
+
+// [POST] EDIT 
+// app.post("/edit", (req, res) => { // old one
+app.post("/urls/:shortURL/edit", (req, res) => {
+  let shortURL = req.params.shortURL;
+  let longURL = req.body.longURL;
+  
+  
+  editURL(urlDatabase, shortURL, longURL)
+
+  // Check if user is valid
+  // if (urlOwnershipValidation(urlDatabase, userID, shortURL)) {
+  //   // If user is valid, allow editURL function to be called, passing in urlDatabase, shortURL, updatedLongURL (WHERE SHOULD THIS COME FROM???)
+  //   editURL(urlDatabase, shortURL, updatedLongURL)
+  //   res.redirect("/urls")
+  //   // Otherwise, redirect non valid user
+  // } else {
+  //     res.redirect("/urls")
+  //   }
   res.redirect("/urls")
-});
+  });
 
+// [POST] SHORT URL -> LONG URL REDIRECT PAGE 
 app.post("/urls/:shortURL", (req, res) => {
-  const longURL = req.body.longURL
-  urlDatabase[req.params.shortURL] = longURL
-  res.redirect("/urls");
+  const currentLongURL = urlDatabase[req.params.shortURL].longURL
+  res.redirect("/urls", currentLongURL);
 });
 
-//Route for login in navbar, using cookies (DEPRECATED, repalced by login form (GET & POST))
-// app.post("/login", (req, res) => {
-//   const username = req.body.username
-//   res.cookie('username', username)
-//   res.redirect("/urls");
-// });
-
-// Route for logout, clearing cookie
+// [POST] LOGOUT, CLEARS COOKIES
 app.post("/logout", (req, res) => {
   res.clearCookie('userID')
   res.redirect("/urls");
 });
 
-// Route for handling registration form data (POST)
+// [POST] REGISTRATION FORM
 app.post("/register", (req, res) => {
   
   // Set up required info
-  console.log("req.body", req.body)
+  // console.log("req.body", req.body)
   const email = req.body.email
   const password = req.body.password
 
@@ -179,11 +278,11 @@ app.post("/register", (req, res) => {
   
   // Create random user ID
   let randomUserID = randomString();
-  console.log("randomUserID", randomUserID)
+  // console.log("randomUserID", randomUserID)
   
   // Create new user object
   let newUser = { id: randomUserID, email: email, password: password }
-  console.log("newUser", newUser)
+  // console.log("newUser", newUser)
 
   // Add new user to global users object
   users[randomUserID] = newUser
@@ -192,7 +291,7 @@ app.post("/register", (req, res) => {
   res.cookie('userID', randomUserID)
 
   // Test that the users object is properly being appended to
-  console.log(users)
+  // console.log(users)
 
   // Set conditionals to handle registration errors
 
@@ -200,6 +299,13 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 
 });
+
+// [POST] LOGIN NAVBAR (DEPRECATED, REPLACED BY LOGIN FORM, GET, POST)
+// app.post("/login", (req, res) => {
+//   const username = req.body.username
+//   res.cookie('username', username)
+//   res.redirect("/urls");
+// });
 
 /* COMPLETED TESTS
 [x] A user can register
