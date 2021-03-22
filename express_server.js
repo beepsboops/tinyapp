@@ -3,12 +3,17 @@ const app = express();
 const PORT = 8080; // default port 8080
 
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
 const { getExistingUser, urlsForUser, deleteURL, editURL, urlOwnershipValidation } = require(`./helperFunctions`)
 const bcrypt = require('bcrypt');
+const cookieSession = require('cookie-session')
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
 
 app.set("view engine", "ejs");
 
@@ -74,13 +79,13 @@ app.get("/hello", (req, res) => {
 
 // [GET] HOMEPAGE 1.0
 // app.get("/urls", (req, res) => {
-//   const templateVars = { urls: urlDatabase, user: users[req.cookies.userID] };
+//   const templateVars = { urls: urlDatabase, user: users[req.session.user_id] };
 //   res.render("urls_index1", templateVars);
 // });
 
 // [GET] HOMEPAGE 2.0
 app.get("/urls", (req, res) => {
-  let userID = req.cookies.userID
+  let userID = req.session.user_id
   const user = users[userID]
   const templateVars = {user: user, urls: urlsForUser(urlDatabase, userID)}
   res.render("urls_index1", templateVars );
@@ -119,7 +124,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 // [GET] URLS NEW PAGE
 app.get("/urls/new", (req, res) => {
-  const user = users[req.cookies.userID]
+  const user = users[req.session.user_id]
   const templateVars = { user: user };
   if (user) {
     res.render("urls_new", templateVars );
@@ -132,31 +137,31 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:shortURL", (req, res) => {
   const currentLongURL = urlDatabase[req.params.shortURL].longURL
-  const templateVars = { shortURL: req.params.shortURL, currentLongURL, user:users[req.cookies.userID] };
+  const templateVars = { shortURL: req.params.shortURL, currentLongURL, user:users[req.session.user_id] };
   res.render("urls_show", templateVars);
 });
 
 // [GET] LONG URLS PAGE // Not sure if this is needed? Correct?
 app.get("/urls/:longURL", (req, res) => {
-  const templateVars = { urls: urlDatabase, user:users[req.cookies.userID] };
+  const templateVars = { urls: urlDatabase, user:users[req.session.user_id] };
   res.render("urls_show/:longURL", templateVars);
 });
 
 // [GET] REGISTRATION FORM
 app.get("/register", (req, res) => {
-  const templateVars = { user:users[req.cookies.userID] };
+  const templateVars = { user:users[req.session.user_id] };
   res.render("register", templateVars);
 });
 
 // [GET] LOGIN FORM
 app.get("/login", (req, res) => {
-  const templateVars = { user:users[req.cookies.userID] };
-  res.render("login", templateVars);
+  // const templateVars = { user:users[req.session.user_id] };
+  res.render("login", {user: ""});
 });
 
 // [GET] EDIT 
 app.get("/urls/:shortURL/edit", (req, res) => {
-  const userID = req.cookies.userID
+  const userID = req.session.user_id
   const user = users[userID]
   const currentLongURL = urlDatabase[req.params.shortURL].longURL
   const templateVars = { user: user, currentLongURL: currentLongURL, shortURL: req.params.shortURL}
@@ -215,7 +220,8 @@ app.post("/login", (req, res) => {
   
   // User is now presummed to be valid
   // Set a user_id cookie containing the user's newly generated ID and redirect to /urls page
-  res.cookie('userID', currentUser.id).redirect("/urls")
+  req.session.user_id = currentUser.id
+  res.redirect("/urls")
 });
 
 // [POST] DELETE 
@@ -228,7 +234,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   // We need to know who's logged in (userID) and what their URLs are (urls)
   // const templateVars = {user: user, urls: urlsForUser(urlDatabase, userID)}
 
-  const userID = req.cookies.userID
+  const userID = req.session.user_id
   const user = users[userID]
   const shortURL = req.params.shortURL
     
@@ -279,7 +285,7 @@ app.post("/urls/:shortURL", (req, res) => {
 
 // [POST] LOGOUT, CLEARS COOKIES
 app.post("/logout", (req, res) => {
-  res.clearCookie('userID')
+  req.session.user_id = "";
   res.redirect("/urls");
 });
 
@@ -323,7 +329,7 @@ app.post("/register", (req, res) => {
   users[randomUserID] = newUser
 
   // Set a user_id cookie containing the user's newly generated ID
-  res.cookie('userID', randomUserID)
+  req.session.user_id = randomUserID
 
   // Test that the users object is properly being appended to
   // console.log(users)

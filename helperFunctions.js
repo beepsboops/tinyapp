@@ -1,6 +1,4 @@
-// const userValidation = (userID, email, password, users) => {
-
-// }
+// HELPER FUNCTIONS
 
 const urlsForUser = (urlDatabase, userID) => {
   let result = {};
@@ -40,10 +38,4 @@ const urlOwnershipValidation = (urlDatabase, userID, shortURL) => {
   }
 }
 
-// COPY OF URL DATABASTE 2.0 // REMOVE LATER
-const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
-};
-
-module.exports = { getExistingUser, urlsForUser, deleteURL, editURL, urlOwnershipValidation }
+module.exports = { urlsForUser, getExistingUser, deleteURL, editURL, urlOwnershipValidation }
