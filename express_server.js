@@ -25,16 +25,11 @@ app.set("view engine", "ejs");
 
 // URL DATABASTE 2.0
 const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "h4z1qj" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "h4z1qj" }
 };
 
-// Anyone can visit short urls
-// But only valid logged in users can do certain stuff
-// Check if user is logged and use function to return URLS where userID = logged in user
-
-
-// users OBJECT
+// USERS DATABASE
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
@@ -53,6 +48,7 @@ const users = {
   }
 }
 
+// RANDOM STRING FUNCTION
 const randomString = function() {
   let r = Math.random().toString(36).substring(7);
   return r;
@@ -77,7 +73,7 @@ app.get("/hello", (req, res) => {
 
 
 
-// [GET] HOMEPAGE 1.0
+// [GET] HOMEPAGE 1.0 (DEPRECATED)
 // app.get("/urls", (req, res) => {
 //   const templateVars = { urls: urlDatabase, user: users[req.session.user_id] };
 //   res.render("urls_index1", templateVars);
@@ -90,7 +86,6 @@ app.get("/urls", (req, res) => {
   const templateVars = {user: user, urls: urlsForUser(urlDatabase, userID)}
   res.render("urls_index1", templateVars );
   // if (!user) {
-    
   //   // Additionally, add conditional logic to urls_index1?
   //       // if !userID display links to login and registration pages
   //       // else dispaly URLS
@@ -136,8 +131,11 @@ app.get("/urls/new", (req, res) => {
 // [GET] SHORT URLS PAGE
 
 app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL
   const currentLongURL = urlDatabase[req.params.shortURL].longURL
-  const templateVars = { shortURL: req.params.shortURL, currentLongURL, user:users[req.session.user_id] };
+  console.log(currentLongURL)
+  const user = users[req.session.user_id]
+  const templateVars = { shortURL: shortURL, currentLongURL: currentLongURL, user: user };
   res.render("urls_show", templateVars);
 });
 
@@ -188,7 +186,7 @@ app.post("/login", (req, res) => {
   const email = req.body.email
   const password = req.body.password
   // console.log('email from login route', email)
-  // console.log('password from login route', password)
+  console.log('password from login route', password)
 
   // If the e-mail or password are empty strings, send response with 400 status code
   if ((!email) || (!password)) {
@@ -210,7 +208,7 @@ app.post("/login", (req, res) => {
   
   // Check if user provided plaintext password matches hashed password
   const hashedPassword = currentUser.password
-  // console.log(hashedPassword)
+  console.log('hashed password from login route', hashedPassword)
   const passwordVerified = bcrypt.compareSync(password, hashedPassword);
   // console.log(passwordVerified)
   if (!passwordVerified) {
