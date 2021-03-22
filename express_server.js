@@ -1,9 +1,11 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
-const { isExistingUser, urlsForUser, deleteURL, editURL, urlOwnershipValidation } = require(`./helperFunctions`)
+const { getExistingUser, urlsForUser, deleteURL, editURL, urlOwnershipValidation } = require(`./helperFunctions`)
+const bcrypt = require('bcrypt');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -38,6 +40,11 @@ const users = {
     id: "aJ48lW", 
     email: "user2@example.com", 
     password: "dishwasher-funk"
+  },
+  "h4z1qj": {
+    "id": "h4z1qj",
+    "email": "user5@example.com",
+    "password": "$2b$10$PZghxzozpmH6OmOBUGR8p.KkILzHSD2QKE0PATycdCg687d6jKbg."
   }
 }
 
@@ -147,31 +154,6 @@ app.get("/login", (req, res) => {
   res.render("login", templateVars);
 });
 
-// [POST] NEW LOGIN
-app.post("/login", (req, res) => {
-  const email = req.body.email
-  const password = req.body.password
-  
-  // If the e-mail or password are empty strings, send response with 400 status code
-  if ((!email) || (!password)) {
-    res.status(400).send("Email and password cannot be blank");
-    return;
-  }
-  
-  const currentUser = (isExistingUser(email, users))
-  console.log("current user", currentUser)
-  if (currentUser) {
-    const templateVars = { user:currentUser };
-    // Set a user_id cookie containing the user's newly generated ID
-    res.cookie('userID', currentUser.id).redirect("/urls")
-  
-    // Redirect the user to the /urls page
-    // res.redirect("/urls");
-  } else {
-    res.status(404).send("User does not exist");
-  }
-});
-
 // [GET] EDIT 
 app.get("/urls/:shortURL/edit", (req, res) => {
   const userID = req.cookies.userID
@@ -181,6 +163,11 @@ app.get("/urls/:shortURL/edit", (req, res) => {
   res.render("edit", templateVars)
 });
 
+// [GET] GET DATABASE // FOR DEBUGGING ONLY <- REALLY USEFUL!, COMMENTED OUT FOR SECURITY
+// app.get("/usersDatabase", (req, res) => {
+//   res.json(users);
+// });
+
 // [POST] URLS MAIN PAGE
 app.post("/urls", (req, res) => {
   let randomKey = randomString();
@@ -189,6 +176,46 @@ app.post("/urls", (req, res) => {
   let newLongURL = req.body.longURL
   urlDatabase[randomKey] = newLongURL
   res.redirect(`/urls/${randomKey}`)
+});
+
+// [POST] NEW LOGIN
+app.post("/login", (req, res) => {
+  const email = req.body.email
+  const password = req.body.password
+  // console.log('email from login route', email)
+  // console.log('password from login route', password)
+
+  // If the e-mail or password are empty strings, send response with 400 status code
+  if ((!email) || (!password)) {
+    res.status(400).send("Email and password cannot be blank");
+    return;
+  }
+  
+  const currentUser = (getExistingUser(email, users))
+  // console.log('Current user in login route', currentUser)
+  // const hashedPassword = users[currentUser].password
+
+  // console.log("current user", currentUser)
+
+  // Check if currentUser exists in database; if it does, proceed to next step
+  if (!currentUser) {
+    res.status(404).send("User does not exist");
+    return;
+  }
+  
+  // Check if user provided plaintext password matches hashed password
+  const hashedPassword = currentUser.password
+  // console.log(hashedPassword)
+  const passwordVerified = bcrypt.compareSync(password, hashedPassword);
+  // console.log(passwordVerified)
+  if (!passwordVerified) {
+    res.status(401).send("Invalid login")
+    return;
+  }
+  
+  // User is now presummed to be valid
+  // Set a user_id cookie containing the user's newly generated ID and redirect to /urls page
+  res.cookie('userID', currentUser.id).redirect("/urls")
 });
 
 // [POST] DELETE 
@@ -264,13 +291,16 @@ app.post("/register", (req, res) => {
   const email = req.body.email
   const password = req.body.password
 
+  // const password = "purple-monkey-dinosaur"; // found in the req.params object
+
+
   // If the e-mail or password are empty strings, send response with 400 status code
   if ((!email) || (!password)) {
     res.status(400).send("Email and password cannot be blank");
     return;
   }
   
-  if (isExistingUser(email, users)) { 
+  if (getExistingUser(email, users)) { 
   // If someone tries registering with email already in users object, send response with 400 status code 
     res.status(400).send("User already exists");
     return;
@@ -280,9 +310,14 @@ app.post("/register", (req, res) => {
   let randomUserID = randomString();
   // console.log("randomUserID", randomUserID)
   
+  // bycrypt implementation here
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   // Create new user object
-  let newUser = { id: randomUserID, email: email, password: password }
+  let newUser = { id: randomUserID, email: email, password: hashedPassword }
+  
   // console.log("newUser", newUser)
+
 
   // Add new user to global users object
   users[randomUserID] = newUser

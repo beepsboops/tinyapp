@@ -1,0 +1,35 @@
+<header>
+  <nav class="navbar navbar-expand-md navbar-dark bg-success">
+    <a class="navbar-brand" href="/urls">TinyApp</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <div class="navbar-nav">
+        <a class="nav-item nav-link" href="/urls">My URLs</a>
+        <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <!-- My deprecated navbar code below -->
+        <!-- <form action="/login" method="POST">
+          <input type="text" name="username" placeholder="Enter your username">
+          <button type="submit">Log in here</button>
+        </form> -->
+         <!-- <form action="/login" method="POST">
+              <input type="text" name="username" placeholder="Username">
+              <button type="submit">Login</button>
+            </form> -->        
+        <!-- My deprecated navbar code above -->
+          <!-- My code below -->
+          <% if(!user) { %>
+            <a class="nav-item nav-link" href="/register">Register</a>
+            <a class="nav-item nav-link" href="/login">Login</a>
+          <% } else { %>
+            <p class="card-text">Logged in As: <%= user.email %> </p>    
+            <form action="/logout" method="POST">
+              <button type="submit">Logout</button>
+            </form>     
+          <% } %>
+          <!-- My code above -->
+      </div>
+    </div>
+  </nav>
+</header>
