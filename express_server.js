@@ -105,6 +105,8 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const currentLongURL = urlDatabase[req.params.shortURL].longURL;
+  console.log(urlDatabase)
+  console.log('GET SHORT URLS PAGE', currentLongURL)
   const user = users[req.session.user_id];
   const templateVars = { shortURL: shortURL, currentLongURL: currentLongURL, user: user };
   res.render("urls_show", templateVars);
@@ -147,7 +149,7 @@ app.get("/urls/:shortURL/edit", (req, res) => {
 // [POST] URLS MAIN PAGE
 app.post("/urls", (req, res) => {
   let randomKey = randomString();
-  let newLongURL = req.body.longURL;
+  let newLongURL = {longURL: req.body.longURL, userID: req.session.user_id};
   urlDatabase[randomKey] = newLongURL;
   res.redirect(`/urls/${randomKey}`);
 });
@@ -224,6 +226,7 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 // [POST] SHORT URL -> LONG URL REDIRECT PAGE
 app.post("/urls/:shortURL", (req, res) => {
   const currentLongURL = urlDatabase[req.params.shortURL].longURL;
+  console.log('POST SHORT URL -> LONG URL', currentLongURL)
   res.redirect("/urls", currentLongURL);
 });
 
